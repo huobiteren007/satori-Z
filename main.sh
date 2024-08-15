@@ -1,18 +1,14 @@
 #!/bin/bash
 
-# 启用错误时退出
-set -e
-
-# 启用调试模式，显示执行的每一行命令
-set -x
-
 # 默认值
 DEFAULT_NUM_NODES=3
 DEFAULT_BASE_PORT=24601
+DEFAULT_FIRST_NODE_NAME="satori1"
 
 # 解析命令行参数
-NUM_NODES=${1:-$DEFAULT_NUM_NODES}
-BASE_PORT=${2:-$DEFAULT_BASE_PORT}
+NUM_NODES=${2:-$DEFAULT_NUM_NODES}
+BASE_PORT=${3:-$DEFAULT_BASE_PORT}
+FIRST_NODE_NAME=${4:-$DEFAULT_FIRST_NODE_NAME}
 
 # 显示使用的值
 echo "使用节点数量: $NUM_NODES"
@@ -23,6 +19,16 @@ SATORI_URL="https://satorinet.io/static/download/linux/satori.zip"
 
 # GitHub仓库URL，用于下载修改后的satori.py
 GITHUB_RAW="https://raw.githubusercontent.com/Zephyrsailor/satori/main"
+
+# 获取节点名称
+get_node_name() {
+    local index=$1
+    if [ $index -eq 1 ] && [ "$FIRST_NODE_NAME" = "satori" ]; then
+        echo "satori"
+    else
+        echo "satori$index"
+    fi
+}
 
 # 给予当前用户Docker权限
 give_docker_permissions() {
@@ -63,10 +69,11 @@ install_dependencies() {
 setup_satori_node() {
     local node_num=$1
     local port=$2
-    local satori_dir="$HOME/.satori$node_num"
-    local container_name="satorineuron$node_num"
+    local node_name=$(get_node_name $node_num)
+    local satori_dir="$HOME/.$node_name"
+    local container_name="${node_name}neuron"
     
-    echo "设置Satori节点 $node_num 在端口 $port"
+    echo "设置Satori节点 $node_name 在端口 $port"
     
     mkdir -p "$satori_dir"
     cd "$satori_dir" || { echo "无法进入目录 $satori_dir"; exit 1; }
@@ -142,12 +149,53 @@ download_and_extract_satori() {
     echo "Satori文件已成功复制到所有节点目录。"
 }
 
+# 修改config.yaml文件
+modify_config_yaml() {
+    echo "开始修改 config.yaml 文件..."
+    for i in $(seq 1 $NUM_NODES); do
+        local node_name=$(get_node_name $i)
+        local config_file="$HOME/.$node_name/config/config.yaml"
+        if [ -f "$config_file" ]; then
+            echo "修改 $config_file ..."
+            sudo sed -i '1s/neuron lock: false/neuron lock: true/' "$config_file"
+            echo "$config_file 已更新"
+        else
+            echo "警告: $config_file 不存在"
+        fi
+    done
+    echo "config.yaml 文件修改完成"
+}
+
+# 更新Satori节点
+update_satori_nodes() {
+    echo "开始更新 Satori 节点..."
+    for i in $(seq 1 $NUM_NODES); do
+        local node_name=$(get_node_name $i)
+        local container_name="${node_name}neuron"
+        local service_name="$node_name.service"
+
+        echo "更新 Satori 节点 $node_name ..."
+
+        # 停止Docker容器
+        sudo docker stop $container_name || echo "警告: 无法停止容器 $container_name"
+
+        # 重启服务
+        sudo systemctl restart $service_name
+        echo "服务 $service_name 已重启"
+
+        # 等待服务完全启动
+        sleep 30
+    done
+    echo "所有 Satori 节点已更新"
+}
+
 # 主函数
 main() {
     install_dependencies
     give_docker_permissions
     download_and_extract_satori
     
+    echo "开始设置Satori节点..."
     for i in $(seq 1 $NUM_NODES); do
         PORT=$((BASE_PORT + i - 1))
         setup_satori_node $i $PORT
@@ -159,6 +207,33 @@ main() {
     rm -f satori.zip
     echo "清理完成。"
 }
+
+# 根据命令行参数执行不同的功能
+case "$1" in
+    install)
+        main
+        ;;
+    update)
+        update_satori_nodes
+        ;;
+    modify_config)
+        modify_config_yaml
+        ;;
+    setup_cron)
+        setup_cron_job
+        ;;
+    *)
+        echo "用法: $0 {install|update|modify_config|setup_cron} [num_nodes] [base_port] [first_node_name]"
+        echo "  install        - 安装和设置Satori节点"
+        echo "  update         - 更新所有Satori节点"
+        echo "  modify_config  - 修改所有节点的config.yaml文件"
+        echo "  setup_cron     - 设置每日更新的cron任务"
+        echo "  num_nodes      - 节点数量 (默认: $DEFAULT_NUM_NODES)"
+        echo "  base_port      - 基础端口号 (默认: $DEFAULT_BASE_PORT)"
+        echo "  first_node_name - 第一个节点的名称 (默认: $DEFAULT_FIRST_NODE_NAME, 可选: satori)"
+        exit 1
+        ;;
+esac
 
 # 运行主函数
 main

@@ -1,54 +1,70 @@
-# Satori 多节点设置脚本
+# Satori 节点管理脚本
 
-这个仓库包含了支持多节点设置的修改版 Satori 文件。
+这个脚本用于安装、配置和管理 Satori 节点。它提供了多种功能，包括安装新节点、更新现有节点、修改配置文件和设置自动更新。
 
-## 文件说明
+## 功能
 
-- `main.sh`：用于设置多个 Satori 节点的主脚本
-- `satori.py`：修改过的 Satori Python 脚本，支持多节点设置
-
-## 更新内容
-
-对原始 Satori 设置进行了以下修改：
-
-1. 在 `satori.py` 中添加了命令行参数，用于自定义端口、安装目录和容器名称。
-2. 创建了一个主脚本（`main.sh`）来自动化多个 Satori 节点的设置。
-3. 修改了 Docker 容器设置，为每个节点使用唯一的名称和端口。
-4. 为每个 Satori 节点实现了 systemd 服务创建，确保自动启动和管理。
+- 安装和设置 Satori 节点
+- 更新所有 Satori 节点
+- 修改所有节点的 config.yaml 文件
+- 设置每日自动更新的 cron 任务
 
 ## 使用方法
+```
+./main.sh {install|update|modify_config|setup_cron} [num_nodes] [base_port] [first_node_name]
+```
 
-1. 克隆此仓库：
+
+### 参数说明
+
+- `install`: 安装和设置 Satori 节点
+- `update`: 更新所有 Satori 节点
+- `modify_config`: 修改所有节点的 config.yaml 文件
+- `setup_cron`: 设置每日更新的 cron 任务
+- `num_nodes`: 要安装的节点数量（默认：3）
+- `base_port`: 基础端口号（默认：24601）
+- `first_node_name`: 第一个节点的名称（默认：satori1，可选：satori）
+
+### 示例
+
+1. 安装 3 个新节点，使用默认设置：
    ```
-   git clone https://github.com/Zephyrsailor/satori.git
-   cd satori
+   ./main.sh install
    ```
 
-2. 使主脚本可执行：
+2. 安装 5 个节点，使用自定义端口，第一个节点命名为 "satori"：
    ```
-   chmod +x main.sh
-   ```
-
-3. 运行主脚本：
-   ```
-   ./main.sh [节点数量] [起始端口]
+   ./main.sh install 5 25000 satori
    ```
 
-   例如，创建 5 个节点，起始端口为 25000：
+3. 更新所有现有节点：
    ```
-   ./main.sh 5 25000
+   ./main.sh update
    ```
 
-   如果不提供参数，脚本将使用默认值（3 个节点，起始端口 24601）。
+4. 修改所有节点的配置文件：
+   ```
+   ./main.sh modify_config
+   ```
 
-这将在您的 Linux 系统上设置多个 Satori 节点。
+5. 设置每日自动更新的 cron 任务：
+   ```
+   ./main.sh setup_cron
+   ```
 
 ## 注意事项
 
-- 在执行主脚本之前，请确保您的系统上已安装并运行 Docker。
-- 脚本将创建多个 Satori 节点，每个节点都有自己的安装目录、端口和 systemd 服务。
-- 安装后，您可能需要登出并重新登录，以使 Docker 权限生效。
+- 请确保在运行脚本之前已经安装了所有必要的依赖（如 Docker）。
+- 脚本需要 root 权限才能执行某些操作。
+- 对于已有的 Satori 安装，请确保使用正确的 `first_node_name` 参数（"satori" 或 "satori1"）。
+- 修改配置文件和设置 cron 任务可能需要在节点完全启动后一段时间才能执行。
 
-## 更新日志
+## 故障排除
 
-- 2024-08-15：初始发布，支持多节点
+如果遇到问题，请检查以下几点：
+
+1. 确保所有依赖都已正确安装。
+2. 检查日志文件以获取详细的错误信息。
+3. 确保使用了正确的参数，特别是在处理已有的 Satori 安装时。
+
+如果问题仍然存在，请提供详细的错误信息和系统环境，以便进行进一步的故障排除。
