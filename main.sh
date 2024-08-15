@@ -132,7 +132,7 @@ download_and_extract_satori() {
         local satori_dir="$HOME/.satori$i"
         echo "复制Satori文件到 $satori_dir ..."
         mkdir -p "$satori_dir"
-        cp -r ./* "$satori_dir/"
+        cp -r ./.satori/* "$satori_dir/"
     done
 
     # 清理临时文件
