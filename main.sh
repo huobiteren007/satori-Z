@@ -29,6 +29,15 @@ get_node_name() {
         echo "satori$index"
     fi
 }
+# 获取容器名称
+get_container_name() {
+    local index=$1
+    if [ $index -eq 1 ] && [ "$FIRST_NODE_NAME" = "satori" ]; then
+        echo "satorineuron"
+    else
+        echo "satorineuron$index"
+    fi
+}
 
 # 给予当前用户Docker权限
 give_docker_permissions() {
@@ -171,7 +180,7 @@ update_satori_nodes() {
     echo "开始更新 Satori 节点..."
     for i in $(seq 1 $NUM_NODES); do
         local node_name=$(get_node_name $i)
-        local container_name="${node_name}neuron"
+        local container_name=$(get_container_name $i)
         local service_name="$node_name.service"
 
         echo "更新 Satori 节点 $node_name ..."
