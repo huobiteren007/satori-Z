@@ -80,7 +80,7 @@ setup_satori_node() {
     local port=$2
     local node_name=$(get_node_name $node_num)
     local satori_dir="$HOME/.$node_name"
-    local container_name="${node_name}neuron"
+    local container_name=$(get_container_name $i)
     
     echo "设置Satori节点 $node_name 在端口 $port"
     
