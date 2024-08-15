@@ -24,54 +24,75 @@ SATORI_URL="https://satorinet.io/static/download/linux/satori.zip"
 # GitHub仓库URL，用于下载修改后的satori.py
 GITHUB_RAW="https://raw.githubusercontent.com/Zephyrsailor/satori/main"
 
-# 安装依赖
-install_dependencies() {
-    sudo apt update
-    sudo apt install -y unzip docker.io python3 python3-pip
-    sudo pip3 install requests
-}
-
 # 给予当前用户Docker权限
 give_docker_permissions() {
-    sudo groupadd docker || true
-    sudo usermod -aG docker $USER
-    newgrp docker
+    CURRENT_USER=$(whoami)
+    if groups $CURRENT_USER | grep -q docker; then
+        echo "用户已有Docker权限。"
+    else
+        echo "正在给用户Docker权限..."
+        sudo groupadd docker 2>/dev/null || true
+        sudo usermod -aG docker $CURRENT_USER
+        echo "Docker权限已授予。您需要注销并重新登录以使更改生效。"
+        echo "脚本将继续执行，但某些Docker操作可能需要重新登录后才能正常工作。"
+    fi
 }
 
-# 下载并解压Satori文件
-download_and_extract_satori() {
-    if [ ! -f "satori.zip" ]; then
-        wget $SATORI_URL -O satori.zip
+# 安装依赖
+install_dependencies() {
+    if ! command -v docker &> /dev/null; then
+        echo "未找到Docker。正在安装Docker..."
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sudo sh get-docker.sh
+        rm get-docker.sh
+    else
+        echo "Docker已安装。"
     fi
-    unzip -o satori.zip -d satori
+
+    local packages="wget unzip python3 python3-pip"
+    for package in $packages; do
+        if ! dpkg -s $package &> /dev/null; then
+            sudo apt-get install -y $package
+        else
+            echo "$package 已安装。"
+        fi
+    done
 }
 
 # 设置Satori节点
 setup_satori_node() {
     local node_num=$1
     local port=$2
+    local satori_dir="$HOME/.satori$node_num"
+    local container_name="satorineuron$node_num"
     
-    cd satori
+    echo "设置Satori节点 $node_num 在端口 $port"
+    
+    mkdir -p "$satori_dir"
+    cd "$satori_dir" || { echo "无法进入目录 $satori_dir"; exit 1; }
     
     # 下载修改后的satori.py文件
-    wget $GITHUB_RAW/satori.py -O satori.py
+    echo "下载修改后的satori.py文件..."
+    wget $GITHUB_RAW/satori.py -O satori.py || { echo "下载satori.py失败"; exit 1; }
     
-    # 创建配置文件
-    cat > config$node_num.json <<EOF
-{
-    "port": $port
-}
-EOF
+    # 下载requirements.txt文件
+    echo "下载requirements.txt文件..."
+    wget $GITHUB_RAW/requirements.txt -O requirements.txt || { echo "下载requirements.txt失败"; exit 1; }
+    
+    # 安装Python依赖
+    echo "安装Python依赖..."
+    pip3 install -r requirements.txt || { echo "安装Python依赖失败"; exit 1; }
     
     # 创建systemd服务文件
+    echo "创建systemd服务文件 satori$node_num.service..."
     sudo tee /etc/systemd/system/satori$node_num.service > /dev/null <<EOF
 [Unit]
 Description=Satori Node $node_num
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 $(pwd)/satori.py $(pwd)/config$node_num.json
-WorkingDirectory=$(pwd)
+ExecStart=/usr/bin/python3 $satori_dir/satori.py --port $port --install-dir $satori_dir --container-name $container_name
+WorkingDirectory=$satori_dir
 User=$USER
 Restart=always
 
@@ -80,13 +101,45 @@ WantedBy=multi-user.target
 EOF
     
     # 启动服务
+    echo "启动Satori节点 $node_num 服务..."
     sudo systemctl daemon-reload
     sudo systemctl enable satori$node_num.service
     sudo systemctl start satori$node_num.service
     
     echo "Satori节点 $node_num 已创建并在端口 $port 上启动。"
     
-    cd ..
+    cd "$HOME"
+}
+
+# 下载并解压Satori文件
+download_and_extract_satori() {
+    local temp_dir="$HOME/satori_temp"
+    mkdir -p "$temp_dir"
+    cd "$temp_dir"
+
+    if [ ! -f "satori.zip" ]; then
+        echo "下载Satori文件到临时目录 $temp_dir ..."
+        wget $SATORI_URL -O satori.zip || { echo "下载Satori文件失败"; exit 1; }
+    else
+        echo "Satori文件已存在于临时目录，跳过下载。"
+    fi
+
+    echo "解压Satori文件到临时目录 ..."
+    unzip -o satori.zip || { echo "解压Satori文件失败"; exit 1; }
+
+    # 为每个节点复制文件
+    for i in $(seq 1 $NUM_NODES); do
+        local satori_dir="$HOME/.satori$i"
+        echo "复制Satori文件到 $satori_dir ..."
+        mkdir -p "$satori_dir"
+        cp -r ./* "$satori_dir/"
+    done
+
+    # 清理临时文件
+    cd "$HOME"
+    rm -rf "$temp_dir"
+
+    echo "Satori文件已成功复制到所有节点目录。"
 }
 
 # 主函数
