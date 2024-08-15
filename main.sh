@@ -191,9 +191,6 @@ update_satori_nodes() {
         # 重启服务
         sudo systemctl restart $service_name
         echo "服务 $service_name 已重启"
-
-        # 等待服务完全启动
-        sleep 30
     done
     echo "所有 Satori 节点已更新"
 }
