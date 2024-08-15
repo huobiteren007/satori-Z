@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# 启用错误时退出
+set -e
+
+# 启用调试模式，显示执行的每一行命令
+set -x
+
 # 默认值
 DEFAULT_NUM_NODES=3
 DEFAULT_BASE_PORT=24601
@@ -21,12 +27,12 @@ SATORI_URL="https://satorinet.io/static/download/satori.zip"
 # 检查并安装依赖
 install_dependencies() {
     if ! command -v docker &> /dev/null; then
-        echo "Docker not found. Installing Docker..."
+        echo "未找到Docker。正在安装Docker..."
         curl -fsSL https://get.docker.com -o get-docker.sh
         sudo sh get-docker.sh
         rm get-docker.sh
     else
-        echo "Docker already installed."
+        echo "Docker已安装。"
     fi
 
     local packages="wget python3-venv unzip"
@@ -34,7 +40,7 @@ install_dependencies() {
         if ! dpkg -s $package &> /dev/null; then
             sudo apt-get install -y $package
         else
-            echo "$package already installed."
+            echo "$package 已安装。"
         fi
     done
 }
@@ -43,12 +49,12 @@ install_dependencies() {
 give_docker_permissions() {
     CURRENT_USER=$(whoami)
     if groups $CURRENT_USER | grep -q docker; then
-        echo "User already has docker permissions."
+        echo "用户已有Docker权限。"
     else
-        echo "Giving user docker permissions."
-        sudo groupadd docker 2>/dev/null
+        echo "正在给用户Docker权限..."
+        sudo groupadd docker 2>/dev/null || true
         sudo usermod -aG docker $CURRENT_USER
-        echo "Docker permissions granted. You may need to log out and log back in for changes to take effect."
+        echo "Docker权限已授予。您可能需要注销并重新登录以使更改生效。"
         # 尝试立即应用新的组成员身份
         exec sg docker newgrp `id -gn`
     fi
@@ -60,10 +66,11 @@ setup_satori_node() {
     local port=$2
     
     WORK_DIR="$HOME/.satori$node_num"
+    echo "设置Satori节点 $node_num 在目录 $WORK_DIR"
     
     # 检查节点是否已存在
     if [ -d "$WORK_DIR" ]; then
-        echo "Node $node_num already exists. Skipping..."
+        echo "节点 $node_num 已存在。跳过..."
         return
     fi
     
@@ -82,8 +89,7 @@ setup_satori_node() {
     wget -O satori.py "$GITHUB_RAW/satori.py"
     
     # 设置权限
-    chmod +x ./neuron.sh
-    chmod +x ./satori.py
+    chmod +x ./neuron.sh ./satori.py
     
     # 创建Python虚拟环境并安装依赖
     if [ ! -d "./satorienv" ]; then
@@ -116,10 +122,10 @@ EOL
         sudo systemctl enable satori$node_num.service
         sudo systemctl start satori$node_num.service
     else
-        echo "Service file for node $node_num already exists. Skipping service creation."
+        echo "节点 $node_num 的服务文件已存在。跳过服务创建。"
     fi
     
-    echo "Satori Node $node_num created and started on port $port."
+    echo "Satori节点 $node_num 已创建并在端口 $port 上启动。"
 }
 
 # 主函数
@@ -132,7 +138,7 @@ main() {
         setup_satori_node $i $PORT
     done
 
-    echo "Created or checked $NUM_NODES Satori nodes."
+    echo "已创建或检查 $NUM_NODES 个Satori节点。"
 }
 
 # 运行主函数
