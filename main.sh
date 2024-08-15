@@ -240,6 +240,3 @@ case "$1" in
         exit 1
         ;;
 esac
-
-# 运行主函数
-main
