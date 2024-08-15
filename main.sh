@@ -10,10 +10,6 @@ NUM_NODES=${2:-$DEFAULT_NUM_NODES}
 BASE_PORT=${3:-$DEFAULT_BASE_PORT}
 FIRST_NODE_NAME=${4:-$DEFAULT_FIRST_NODE_NAME}
 
-# 显示使用的值
-echo "使用节点数量: $NUM_NODES"
-echo "使用基础端口: $BASE_PORT"
-
 # Satori文件的URL
 SATORI_URL="https://satorinet.io/static/download/linux/satori.zip"
 
