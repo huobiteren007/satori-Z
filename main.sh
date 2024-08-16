@@ -188,7 +188,7 @@ update_satori_nodes() {
         echo "更新 Satori 节点 $node_name ..."
 
         # 停止Docker容器
-        sudo docker stop $container_name || echo "警告: 无法停止容器 $container_name"
+        sudo docker rm -f $container_name || echo "警告: 无法停止容器 $container_name"
 
         # 重启服务
         sudo systemctl restart $service_name
