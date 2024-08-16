@@ -77,6 +77,12 @@ setup_satori_node() {
     local node_name=$(get_node_name $node_num)
     local satori_dir="$HOME/.$node_name"
     local container_name=$(get_container_name $i)
+
+    # 检查容器是否已经存在
+    if docker ps -a --format '{{.Names}}' | grep -q "^${container_name}$"; then
+        echo "节点 $node_name 已存在。跳过设置。"
+        return 0
+    fi
     
     echo "设置Satori节点 $node_name 在端口 $port"
     
