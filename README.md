@@ -32,14 +32,14 @@
    ./main.sh install
    ```
 
-2. 安装 5 个节点，使用自定义端口，第一个节点命名为 "satori"：
+2. 安装 5 个节点，使用自定义端口，第一个节点命名为 "satori1"：
    ```
-   ./main.sh install 5 25000 satori
+   ./main.sh install 5 24601 satori1
    ```
 
-3. 更新所有现有节点：
+3. 更新5个节点：
    ```
-   ./main.sh update
+   ./main.sh update 5 24601 satori
    ```
 
 4. 修改所有节点的配置文件：
@@ -49,7 +49,7 @@
 
 5. 设置每日自动更新的 cron 任务：
    ```
-   ./main.sh setup_cron
+   ./main.sh setup_cron 5 24601 satori1
    ```
 
 ## 注意事项
