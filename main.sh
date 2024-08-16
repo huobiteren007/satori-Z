@@ -197,6 +197,26 @@ update_satori_nodes() {
     echo "所有 Satori 节点已更新"
 }
 
+# 设置定时任务
+setup_cron_job() {
+    local num_nodes=$1
+    local base_port=$2
+    local first_node_name=$3
+
+    echo "设置每日更新的 cron 任务..."
+    
+    # 检查 crontab 中是否已存在相同的任务
+    if crontab -l | grep -q "satori_update"; then
+        echo "Cron 任务已存在，正在更新..."
+        crontab -r
+    fi
+    
+    # 创建新的 cron 任务
+    (crontab -l 2>/dev/null; echo "0 2 * * * $PWD/main.sh update $num_nodes $base_port $first_node_name > /tmp/satori_update.log 2>&1") | crontab -
+    
+    echo "Cron 任务已设置。Satori 节点将每天凌晨 2 点自动更新。"
+}
+
 # 主函数
 main() {
     install_dependencies
