@@ -168,7 +168,7 @@ modify_config_yaml() {
         local config_file="$HOME/.$node_name/config/config.yaml"
         if [ -f "$config_file" ]; then
             echo "修改 $config_file ..."
-            sudo sed -i '1s/neuron lock: false/neuron lock: true/' "$config_file"
+            sudo sed -i 's/neuron lock enabled: false/neuron lock enabled: true/' "$config_file"            
             echo "$config_file 已更新"
         else
             echo "警告: $config_file 不存在"
