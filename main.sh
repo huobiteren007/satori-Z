@@ -99,7 +99,7 @@ setup_satori_node() {
     
     # 安装Python依赖
     echo "安装Python依赖..."
-    python3 --version | grep -q "3.12" && pip3 install -r requirements.txt --break-system-packages || pip3 install -r requirements.txt || { echo "安装Python依赖失败"; exit 1; }
+    python3 --version | grep -q "3.10.12" && pip3 install -r requirements.txt --break-system-packages || pip3 install -r requirements.txt || { echo "安装Python依赖失败"; exit 1; }
     
     # 创建systemd服务文件
     echo "创建systemd服务文件 satori$node_num.service..."
